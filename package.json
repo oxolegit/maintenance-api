@@ -1,0 +1,14 @@
+{
+  "name": "maintenance-api",
+  "version": "1.0.0",
+  "description": "REST API учёта заявок на обслуживание оборудования",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "license": "ISC"
+}
