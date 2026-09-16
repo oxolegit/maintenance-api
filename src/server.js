@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { loadConfig } from "./config/index.js";
 import { createLogger } from "./logger.js";
+import { createStorage, createRepositories } from "./repositories/index.js";
 import { createApp } from "./app.js";
 
 if (existsSync(".env")) {
@@ -9,10 +10,16 @@ if (existsSync(".env")) {
 
 const config = loadConfig(process.env);
 const logger = createLogger(config);
-const app = createApp({ config, logger });
+
+const storage = createStorage(config.storage);
+const repositories = await createRepositories({ storage });
+const app = createApp({ config, repositories, logger });
 
 const server = app.listen(config.port, () => {
-  logger.info({ port: config.port, env: config.env }, "сервер запущен");
+  logger.info(
+    { port: config.port, env: config.env, storage: config.storage.driver },
+    "сервер запущен",
+  );
 });
 
 function shutdown(signal) {
