@@ -4,6 +4,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
+  STORAGE_DRIVER: z.enum(["file", "memory"]).default("file"),
+  DATA_DIR: z.string().default("data"),
 });
 
 function withoutEmptyValues(env) {
@@ -27,5 +29,9 @@ export function loadConfig(env = process.env) {
     isProduction: vars.NODE_ENV === "production",
     port: vars.PORT,
     logLevel: vars.LOG_LEVEL,
+    storage: {
+      driver: vars.STORAGE_DRIVER,
+      dataDir: vars.DATA_DIR,
+    },
   };
 }
