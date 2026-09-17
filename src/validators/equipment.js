@@ -61,3 +61,12 @@ export const equipmentListQuerySchema = listQuery({
     q: optionalString().trim().max(100, { error: "Не более 100 символов" }).optional(),
   },
 });
+
+export const weatherQuerySchema = z.object({
+  days: z.coerce
+    .number({ error: "Должно быть целым числом от 1 до 7" })
+    .int({ error: "Должно быть целым числом от 1 до 7" })
+    .min(1, { error: "Должно быть целым числом от 1 до 7" })
+    .max(7, { error: "Должно быть целым числом от 1 до 7" })
+    .optional(),
+});
