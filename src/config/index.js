@@ -16,6 +16,7 @@ const envSchema = z.object({
   WEATHER_MAX_WIND_SPEED_MS: z.coerce.number().nonnegative().default(10),
   WEATHER_MAX_PRECIPITATION_MM: z.coerce.number().nonnegative().default(0),
   WEATHER_CACHE_TTL_MS: z.coerce.number().int().nonnegative().default(600000),
+  API_KEY: z.string().default(""),
 });
 
 function withoutEmptyValues(env) {
@@ -49,6 +50,7 @@ export function loadConfig(env = process.env) {
       max: vars.RATE_LIMIT_MAX,
     },
     bodyLimit: vars.JSON_BODY_LIMIT,
+    apiKey: vars.API_KEY,
     storage: {
       driver: vars.STORAGE_DRIVER,
       dataDir: vars.DATA_DIR,

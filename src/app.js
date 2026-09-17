@@ -6,6 +6,7 @@ import { requestId } from "./middlewares/requestId.js";
 import { createRequestLogger } from "./middlewares/requestLogger.js";
 import { createCors } from "./middlewares/cors.js";
 import { createRateLimiter } from "./middlewares/rateLimiter.js";
+import { createApiKeyAuth } from "./middlewares/apiKeyAuth.js";
 import { notFound } from "./middlewares/notFound.js";
 import { createErrorHandler } from "./middlewares/errorHandler.js";
 import { createLogger } from "./logger.js";
@@ -30,6 +31,7 @@ export function createApp({
   app.use(helmet());
   app.use(createCors(config.cors));
   app.use("/api", createRateLimiter(config.rateLimit));
+  app.use("/api", createApiKeyAuth({ apiKey: config.apiKey, logger }));
   app.use(express.json({ limit: config.bodyLimit }));
 
   app.use("/api", createApiRouter({ services }));
