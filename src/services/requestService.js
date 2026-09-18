@@ -1,4 +1,5 @@
-import { NotFoundError, ConflictError } from "../errors/index.js";
+import { AppError, NotFoundError, ConflictError, ValidationError } from "../errors/index.js";
+import { validateRequestItem } from "../validators/requests.js";
 import { dateRange } from "./filters.js";
 
 export const STATUS_TRANSITIONS = {
@@ -60,6 +61,36 @@ export function createRequestService({ requestRepository, equipmentRepository })
     return { items, total, page, limit };
   }
 
+  async function create(data) {
+    const equipment = await getEquipment(data.equipmentId);
+    if (equipment.status === "decommissioned") {
+      throw new ConflictError("Нельзя создать заявку на списанное оборудование", {
+        code: "EQUIPMENT_DECOMMISSIONED",
+      });
+    }
+    return requestRepository.create({ ...data, status: "new" });
+  }
+
+  async function importOne(item, index) {
+    try {
+      const { data, details } = validateRequestItem(item);
+      if (details) {
+        throw new ValidationError(details);
+      }
+      const created = await create(data);
+      return { index, status: 201, data: created };
+    } catch (error) {
+      if (!(error instanceof AppError)) {
+        throw error;
+      }
+      return {
+        index,
+        status: error.status,
+        error: { code: error.code, message: error.message, details: error.details },
+      };
+    }
+  }
+
   return {
     list,
 
@@ -70,14 +101,18 @@ export function createRequestService({ requestRepository, equipmentRepository })
 
     getById,
 
-    async create(data) {
-      const equipment = await getEquipment(data.equipmentId);
-      if (equipment.status === "decommissioned") {
-        throw new ConflictError("Нельзя создать заявку на списанное оборудование", {
-          code: "EQUIPMENT_DECOMMISSIONED",
-        });
+    create,
+
+    async importMany(items) {
+      const results = [];
+      for (const [index, item] of items.entries()) {
+        results.push(await importOne(item, index));
       }
-      return requestRepository.create({ ...data, status: "new" });
+      const created = results.filter((result) => result.status === 201).length;
+      return {
+        summary: { total: results.length, created, failed: results.length - created },
+        results,
+      };
     },
 
     async update(id, patch) {

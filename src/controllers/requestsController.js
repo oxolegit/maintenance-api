@@ -19,6 +19,10 @@ export function createRequestsController({ requestService }) {
       sendCreated(req, res, await requestService.create(req.validated.body));
     },
 
+    async importMany(req, res) {
+      res.status(207).json({ data: await requestService.importMany(req.validated.body.items) });
+    },
+
     async update(req, res) {
       const { params, body } = req.validated;
       res.json({ data: await requestService.update(params.id, body) });
