@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Заявки на обслуживание — maintenance-api</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Заявки на обслуживание оборудования</h1>
+      <label class="api-key">
+        API-ключ
+        <input type="password" id="apiKey" placeholder="X-API-Key" autocomplete="off" />
+      </label>
+    </header>
+
+    <p id="message" class="message" hidden></p>
+
+    <section class="panel">
+      <h2>Новая заявка</h2>
+      <form id="createForm" class="form-grid">
+        <label>
+          Оборудование
+          <select name="equipmentId" id="equipmentSelect" required></select>
+        </label>
+        <label>
+          Приоритет
+          <select name="priority">
+            <option value="low">low</option>
+            <option value="medium" selected>medium</option>
+            <option value="high">high</option>
+            <option value="critical">critical</option>
+          </select>
+        </label>
+        <label class="wide">
+          Название
+          <input name="title" required minlength="5" maxlength="120" placeholder="5–120 символов" />
+        </label>
+        <label class="wide">
+          Описание
+          <textarea name="description" rows="2" maxlength="2000"></textarea>
+        </label>
+        <label>
+          Плановая дата
+          <input type="datetime-local" name="plannedAt" />
+        </label>
+        <div class="actions">
+          <button type="submit">Создать</button>
+        </div>
+      </form>
+      <ul id="formErrors" class="errors"></ul>
+    </section>
+
+    <section class="panel">
+      <h2>Список заявок</h2>
+      <form id="filterForm" class="filters">
+        <label>
+          Статус
+          <select name="status">
+            <option value="">все</option>
+            <option value="new">new</option>
+            <option value="in_progress">in_progress</option>
+            <option value="done">done</option>
+            <option value="rejected">rejected</option>
+          </select>
+        </label>
+        <label>
+          Приоритет
+          <select name="priority">
+            <option value="">все</option>
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+            <option value="critical">critical</option>
+          </select>
+        </label>
+        <label>
+          Оборудование
+          <select name="equipmentId" id="equipmentFilter">
+            <option value="">всё</option>
+          </select>
+        </label>
+        <label>
+          Сортировка
+          <select name="sort">
+            <option value="createdAt">по дате создания</option>
+            <option value="plannedAt">по плановой дате</option>
+            <option value="title">по названию</option>
+            <option value="status">по статусу</option>
+          </select>
+        </label>
+        <label>
+          Порядок
+          <select name="order">
+            <option value="desc">убыв.</option>
+            <option value="asc">возр.</option>
+          </select>
+        </label>
+        <button type="submit">Применить</button>
+      </form>
+
+      <table id="requestsTable">
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Оборудование</th>
+            <th>Приоритет</th>
+            <th>Статус</th>
+            <th>План</th>
+            <th>Создана</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p id="empty" class="empty" hidden>Заявок не найдено.</p>
+
+      <div class="pagination">
+        <button type="button" id="prevPage">←</button>
+        <span id="pageInfo"></span>
+        <button type="button" id="nextPage">→</button>
+      </div>
+    </section>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

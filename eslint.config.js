@@ -28,6 +28,19 @@ export default [
     },
   },
   {
+    files: ["public/**/*.js"],
+    languageOptions: {
+      sourceType: "script",
+      globals: {
+        document: "readonly",
+        window: "readonly",
+        localStorage: "readonly",
+        FormData: "readonly",
+        URLSearchParams: "readonly",
+      },
+    },
+  },
+  {
     files: ["tests/**/*.js"],
     languageOptions: {
       globals: {
