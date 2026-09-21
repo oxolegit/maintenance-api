@@ -1,0 +1,53 @@
+import { loadConfig } from "../../src/config/index.js";
+import { createLogger } from "../../src/logger.js";
+import { createMemoryStorage } from "../../src/repositories/storage/memoryStorage.js";
+import { createRepositories } from "../../src/repositories/index.js";
+import { createApp } from "../../src/app.js";
+
+export const API_KEY = "test-api-key";
+
+export const equipmentPayload = (overrides = {}) => ({
+  name: "Ветротурбина ВТ-01",
+  type: "turbine",
+  serialNumber: `WT-${Math.random().toString(36).slice(2, 8)}`,
+  location: { lat: 55.75, lon: 37.61 },
+  installedAt: "2024-05-10",
+  ...overrides,
+});
+
+export const requestPayload = (equipmentId, overrides = {}) => ({
+  equipmentId,
+  title: "Замена подшипника главного вала",
+  priority: "high",
+  ...overrides,
+});
+
+export const fakeForecastDay = (overrides = {}) => ({
+  date: "2026-09-21",
+  tempMin: 10,
+  tempMax: 18,
+  precipitation: 0,
+  windSpeedMax: 4.5,
+  windGustsMax: 9,
+  ...overrides,
+});
+
+export async function buildApp({ env = {}, weatherClient } = {}) {
+  const config = loadConfig({
+    NODE_ENV: "test",
+    STORAGE_DRIVER: "memory",
+    LOG_LEVEL: "silent",
+    API_KEY,
+    ...env,
+  });
+  const repositories = await createRepositories({ storage: createMemoryStorage() });
+  const app = createApp({
+    config,
+    repositories,
+    logger: createLogger(config),
+    weatherClient: weatherClient ?? { getDailyForecast: async () => [fakeForecastDay()] },
+  });
+  return { app, repositories, config };
+}
+
+export const withKey = (req) => req.set("X-API-Key", API_KEY);
