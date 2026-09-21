@@ -9,7 +9,7 @@ function buildFilters({ type, status, installedFrom, installedTo, q }) {
   return filters;
 }
 
-export function createEquipmentService({ equipmentRepository, requestRepository }) {
+export function createEquipmentService({ equipmentRepository, requestRepository, weatherService }) {
   async function getById(id) {
     const equipment = await equipmentRepository.findById(id);
     if (!equipment) {
@@ -53,6 +53,12 @@ export function createEquipmentService({ equipmentRepository, requestRepository 
         await assertSerialNumberFree(patch.serialNumber, id);
       }
       return equipmentRepository.update(id, patch);
+    },
+
+    async getWeather(id, { days } = {}) {
+      const equipment = await getById(id);
+      const forecast = await weatherService.getForecast(equipment.location, days);
+      return { equipmentId: equipment.id, equipmentName: equipment.name, ...forecast };
     },
 
     async remove(id) {

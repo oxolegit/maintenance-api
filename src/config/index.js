@@ -6,6 +6,12 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   STORAGE_DRIVER: z.enum(["file", "memory"]).default("file"),
   DATA_DIR: z.string().default("data"),
+  WEATHER_API_URL: z.url().default("https://api.open-meteo.com/v1/forecast"),
+  REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+  WEATHER_FORECAST_DAYS: z.coerce.number().int().min(1).max(7).default(3),
+  WEATHER_MAX_WIND_SPEED_MS: z.coerce.number().nonnegative().default(10),
+  WEATHER_MAX_PRECIPITATION_MM: z.coerce.number().nonnegative().default(0),
+  WEATHER_CACHE_TTL_MS: z.coerce.number().int().nonnegative().default(600000),
 });
 
 function withoutEmptyValues(env) {
@@ -32,6 +38,14 @@ export function loadConfig(env = process.env) {
     storage: {
       driver: vars.STORAGE_DRIVER,
       dataDir: vars.DATA_DIR,
+    },
+    weather: {
+      apiUrl: vars.WEATHER_API_URL,
+      timeoutMs: vars.REQUEST_TIMEOUT_MS,
+      forecastDays: vars.WEATHER_FORECAST_DAYS,
+      maxWindSpeedMs: vars.WEATHER_MAX_WIND_SPEED_MS,
+      maxPrecipitationMm: vars.WEATHER_MAX_PRECIPITATION_MM,
+      cacheTtlMs: vars.WEATHER_CACHE_TTL_MS,
     },
   };
 }

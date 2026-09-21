@@ -5,6 +5,7 @@ import {
   createEquipmentSchema,
   updateEquipmentSchema,
   equipmentListQuerySchema,
+  weatherQuerySchema,
 } from "../validators/equipment.js";
 import { equipmentRequestsQuerySchema } from "../validators/requests.js";
 
@@ -25,6 +26,12 @@ export function createEquipmentRouter({ equipmentController, requestsController 
     "/:id/requests",
     validate({ params: idParams, query: equipmentRequestsQuerySchema }),
     requestsController.listByEquipment,
+  );
+
+  router.get(
+    "/:id/weather",
+    validate({ params: idParams, query: weatherQuerySchema }),
+    equipmentController.weather,
   );
 
   return router;

@@ -1,9 +1,13 @@
 import { createEquipmentService } from "./equipmentService.js";
 import { createRequestService } from "./requestService.js";
+import { createWeatherService } from "./weatherService.js";
 
-export function createServices({ repositories }) {
+export function createServices({ repositories, weatherClient, config, logger }) {
+  const weatherService = createWeatherService({ weatherClient, config: config.weather, logger });
+
   return {
-    equipmentService: createEquipmentService(repositories),
+    weatherService,
+    equipmentService: createEquipmentService({ ...repositories, weatherService }),
     requestService: createRequestService(repositories),
   };
 }

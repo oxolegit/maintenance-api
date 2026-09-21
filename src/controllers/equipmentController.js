@@ -19,6 +19,11 @@ export function createEquipmentController({ equipmentService }) {
       res.json({ data: await equipmentService.update(params.id, body) });
     },
 
+    async weather(req, res) {
+      const { params, query } = req.validated;
+      res.json({ data: await equipmentService.getWeather(params.id, query) });
+    },
+
     async remove(req, res) {
       await equipmentService.remove(req.validated.params.id);
       res.status(204).end();
