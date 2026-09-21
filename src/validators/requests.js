@@ -64,3 +64,23 @@ export const equipmentRequestsQuerySchema = listQuery({
   sortFields: REQUEST_SORT_FIELDS,
   filters: requestFilters,
 });
+
+export const batchRequestsSchema = z.object({
+  items: z
+    .array(z.unknown(), { error: "Ожидается массив items" })
+    .min(1, { error: "Массив items не должен быть пустым" })
+    .max(100, { error: "За один запрос можно импортировать не более 100 заявок" }),
+});
+
+export function validateRequestItem(item) {
+  const result = createRequestSchema.safeParse(item);
+  if (result.success) {
+    return { data: result.data };
+  }
+  return {
+    details: result.error.issues.map((issue) => ({
+      field: issue.path.length > 0 ? issue.path.join(".") : "item",
+      message: issue.message,
+    })),
+  };
+}

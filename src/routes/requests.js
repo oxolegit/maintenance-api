@@ -6,6 +6,7 @@ import {
   updateRequestSchema,
   changeStatusSchema,
   requestListQuerySchema,
+  batchRequestsSchema,
 } from "../validators/requests.js";
 
 export function createRequestsRouter(controller) {
@@ -13,6 +14,7 @@ export function createRequestsRouter(controller) {
 
   router.get("/", validate({ query: requestListQuerySchema }), controller.list);
   router.post("/", validate({ body: createRequestSchema }), controller.create);
+  router.post("/batch", validate({ body: batchRequestsSchema }), controller.importMany);
   router.get("/:id", validate({ params: idParams }), controller.getById);
   router.patch(
     "/:id",
