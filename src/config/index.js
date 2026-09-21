@@ -4,6 +4,10 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
+  CORS_ORIGINS: z.string().default("http://localhost:3000,http://localhost:5173"),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  JSON_BODY_LIMIT: z.string().default("100kb"),
   STORAGE_DRIVER: z.enum(["file", "memory"]).default("file"),
   DATA_DIR: z.string().default("data"),
   WEATHER_API_URL: z.url().default("https://api.open-meteo.com/v1/forecast"),
@@ -35,6 +39,16 @@ export function loadConfig(env = process.env) {
     isProduction: vars.NODE_ENV === "production",
     port: vars.PORT,
     logLevel: vars.LOG_LEVEL,
+    cors: {
+      origins: vars.CORS_ORIGINS.split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    },
+    rateLimit: {
+      windowMs: vars.RATE_LIMIT_WINDOW_MS,
+      max: vars.RATE_LIMIT_MAX,
+    },
+    bodyLimit: vars.JSON_BODY_LIMIT,
     storage: {
       driver: vars.STORAGE_DRIVER,
       dataDir: vars.DATA_DIR,

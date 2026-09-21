@@ -44,6 +44,12 @@ export class PayloadTooLargeError extends AppError {
   }
 }
 
+export class TooManyRequestsError extends AppError {
+  constructor(message = "Слишком много запросов, повторите позже") {
+    super(message, { status: 429, code: "RATE_LIMITED" });
+  }
+}
+
 export class UpstreamError extends AppError {
   constructor(message = "Внешний сервис недоступен", { timeout = false } = {}) {
     super(message, {
