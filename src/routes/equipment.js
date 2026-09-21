@@ -6,19 +6,26 @@ import {
   updateEquipmentSchema,
   equipmentListQuerySchema,
 } from "../validators/equipment.js";
+import { equipmentRequestsQuerySchema } from "../validators/requests.js";
 
-export function createEquipmentRouter(controller) {
+export function createEquipmentRouter({ equipmentController, requestsController }) {
   const router = Router();
 
-  router.get("/", validate({ query: equipmentListQuerySchema }), controller.list);
-  router.post("/", validate({ body: createEquipmentSchema }), controller.create);
-  router.get("/:id", validate({ params: idParams }), controller.getById);
+  router.get("/", validate({ query: equipmentListQuerySchema }), equipmentController.list);
+  router.post("/", validate({ body: createEquipmentSchema }), equipmentController.create);
+  router.get("/:id", validate({ params: idParams }), equipmentController.getById);
   router.patch(
     "/:id",
     validate({ params: idParams, body: updateEquipmentSchema }),
-    controller.update,
+    equipmentController.update,
   );
-  router.delete("/:id", validate({ params: idParams }), controller.remove);
+  router.delete("/:id", validate({ params: idParams }), equipmentController.remove);
+
+  router.get(
+    "/:id/requests",
+    validate({ params: idParams, query: equipmentRequestsQuerySchema }),
+    requestsController.listByEquipment,
+  );
 
   return router;
 }
