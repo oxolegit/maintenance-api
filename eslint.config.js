@@ -19,6 +19,7 @@ export default [
         setTimeout: "readonly",
         clearTimeout: "readonly",
         Buffer: "readonly",
+        structuredClone: "readonly",
       },
     },
     rules: {
