@@ -25,6 +25,7 @@ REST API на Express для учёта оборудования произво�
 - [Логирование](#логирование)
 - [Структура проекта](#структура-проекта)
 - [Postman](#postman)
+- [Запуск в Docker](#запуск-в-docker)
 - [HTML-страница](#html-страница)
 - [Разработка](#разработка)
 
@@ -646,6 +647,26 @@ docs/postman/             коллекция и окружение Postman
 ```bash
 npx newman run docs/postman/maintenance-api.postman_collection.json \
   -e docs/postman/local.postman_environment.json
+```
+
+## Запуск в Docker
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Образ собирается из `Dockerfile` (`node:22-alpine`, только production-зависимости,
+процесс запускается от пользователя `node`, встроенный `HEALTHCHECK` на `/api/health`).
+`compose.yaml` читает переменные из `.env`, публикует порт `PORT` (по умолчанию 3000) и
+монтирует каталог `./data` как том, чтобы данные переживали пересоздание контейнера.
+Значения `NODE_ENV`, `PORT` и `DATA_DIR` внутри контейнера фиксированы в compose.
+
+Без Compose:
+
+```bash
+docker build -t maintenance-api .
+docker run --rm -p 3000:3000 --env-file .env -v "$(pwd)/data:/app/data" maintenance-api
 ```
 
 ## HTML-страница
