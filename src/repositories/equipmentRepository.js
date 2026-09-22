@@ -1,11 +1,12 @@
-import { CollectionRepository } from "./collectionRepository.js";
+import { SequelizeRepository } from "./sequelizeRepository.js";
+import { equipmentToRow, equipmentToItem } from "./serializers.js";
 
-export class EquipmentRepository extends CollectionRepository {
-  constructor({ storage }) {
-    super({ collection: "equipment", storage });
+export class EquipmentRepository extends SequelizeRepository {
+  constructor({ Equipment }) {
+    super({ model: Equipment, toRow: equipmentToRow, toItem: equipmentToItem });
   }
 
-  findBySerialNumber(serialNumber) {
-    return this.findOne({ serialNumber });
+  findBySerialNumber(serialNumber, options) {
+    return this.findOne({ serialNumber }, options);
   }
 }

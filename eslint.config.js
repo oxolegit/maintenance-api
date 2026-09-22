@@ -2,7 +2,7 @@ import js from "@eslint/js";
 import prettierConfig from "eslint-config-prettier";
 
 export default [
-  { ignores: ["node_modules/", "data/", "coverage/"] },
+  { ignores: ["node_modules/", "coverage/"] },
   js.configs.recommended,
   prettierConfig,
   {

@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { loadConfig } from "./config/index.js";
 import { createLogger } from "./logger.js";
-import { createStorage, createRepositories } from "./repositories/index.js";
+import { createRepositories } from "./repositories/index.js";
 import { createSequelize, pingDatabase } from "./db/sequelize.js";
 import { createApp } from "./app.js";
 
@@ -25,8 +25,7 @@ try {
   process.exit(1);
 }
 
-const storage = createStorage(config.storage);
-const repositories = await createRepositories({ storage });
+const repositories = createRepositories({ sequelize });
 const app = createApp({
   config,
   repositories,
@@ -35,15 +34,7 @@ const app = createApp({
 });
 
 const server = app.listen(config.port, () => {
-  logger.info(
-    {
-      port: config.port,
-      env: config.env,
-      storage: config.storage.driver,
-      database: config.db.name,
-    },
-    "сервер запущен",
-  );
+  logger.info({ port: config.port, env: config.env, database: config.db.name }, "сервер запущен");
 });
 
 function shutdown(signal) {

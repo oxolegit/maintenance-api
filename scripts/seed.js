@@ -1,7 +1,8 @@
 import { existsSync } from "node:fs";
 import { loadConfig } from "../src/config/index.js";
 import { createLogger } from "../src/logger.js";
-import { createStorage, createRepositories } from "../src/repositories/index.js";
+import { createSequelize } from "../src/db/sequelize.js";
+import { createRepositories } from "../src/repositories/index.js";
 import { createServices } from "../src/services/index.js";
 
 if (existsSync(".env")) {
@@ -10,7 +11,8 @@ if (existsSync(".env")) {
 
 const config = loadConfig(process.env);
 const logger = createLogger(config);
-const repositories = await createRepositories({ storage: createStorage(config.storage) });
+const sequelize = createSequelize({ db: config.db, logger });
+const repositories = createRepositories({ sequelize });
 const { equipmentService, requestService } = createServices({
   repositories,
   weatherClient: null,
@@ -95,3 +97,4 @@ for (const [serialNumber, title, priority, plannedAt] of requests) {
 }
 
 logger.info({ createdEquipment, createdRequests }, "демо-данные загружены");
+await sequelize.close();

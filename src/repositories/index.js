@@ -1,15 +1,14 @@
-import { createMemoryStorage } from "./storage/memoryStorage.js";
-import { createFileStorage } from "./storage/fileStorage.js";
+import { getModels } from "../db/models/index.js";
 import { EquipmentRepository } from "./equipmentRepository.js";
 import { RequestRepository } from "./requestRepository.js";
 
-export function createStorage({ driver, dataDir }) {
-  return driver === "file" ? createFileStorage({ dataDir }) : createMemoryStorage();
-}
-
-export async function createRepositories({ storage }) {
+// Единственное место, где сервисы соприкасаются с ORM: репозитории и функция transaction,
+// выполняющая работу в одной транзакции с откатом при исключении
+export function createRepositories({ sequelize }) {
+  const models = getModels(sequelize);
   return {
-    equipmentRepository: await new EquipmentRepository({ storage }).init(),
-    requestRepository: await new RequestRepository({ storage }).init(),
+    equipmentRepository: new EquipmentRepository(models),
+    requestRepository: new RequestRepository(models),
+    transaction: (work) => sequelize.transaction(work),
   };
 }

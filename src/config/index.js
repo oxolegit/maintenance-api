@@ -8,8 +8,6 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   JSON_BODY_LIMIT: z.string().default("100kb"),
-  STORAGE_DRIVER: z.enum(["file", "memory"]).default("file"),
-  DATA_DIR: z.string().default("data"),
   DB_HOST: z.string().default("localhost"),
   DB_PORT: z.coerce.number().int().min(1).max(65535).default(5432),
   DB_NAME: z.string().default("maintenance"),
@@ -60,10 +58,6 @@ export function loadConfig(env = process.env) {
     },
     bodyLimit: vars.JSON_BODY_LIMIT,
     apiKey: vars.API_KEY,
-    storage: {
-      driver: vars.STORAGE_DRIVER,
-      dataDir: vars.DATA_DIR,
-    },
     db: {
       host: vars.DB_HOST,
       port: vars.DB_PORT,
