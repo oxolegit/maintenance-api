@@ -1,4 +1,39 @@
 services:
+  db:
+    image: postgres:16
+    container_name: maintenance-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-maintenance}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?задайте DB_PASSWORD в .env}
+      POSTGRES_DB: ${DB_NAME:-maintenance}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # -h localhost: во время первичной инициализации сервер слушает только unix-сокет,
+      # и проверка через сокет сообщила бы о готовности раньше времени
+      test: ["CMD-SHELL", "pg_isready -h localhost -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  migrate:
+    build: .
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+    command: ["node", "scripts/migrate.js", "up"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
   api:
     build: .
     container_name: maintenance-api
@@ -9,7 +44,15 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
       DATA_DIR: /app/data
     volumes:
       - ./data:/app/data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
+
+volumes:
+  pgdata:
