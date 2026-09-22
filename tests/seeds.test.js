@@ -36,6 +36,7 @@ describe("сиды", () => {
     getModels(sequelize);
   const RequestStatusHistory = getModels(sequelize).RequestStatusHistory;
   const RequestAssignee = getModels(sequelize).RequestAssignee;
+  const { Part, RequestPart } = getModels(sequelize);
 
   afterEach(async () => {
     await sequelize.query("DROP TABLE IF EXISTS sequelize_seeds");
@@ -55,12 +56,15 @@ describe("сиды", () => {
     expect(await MaintenanceRequest.count({ where: { status: "done" } })).toBe(11);
     expect(await RequestAssignee.count({ where: { role: "lead" } })).toBe(17);
     expect(await RequestStatusHistory.count({ where: { newStatus: "done" } })).toBe(11);
+    expect(await Part.count()).toBe(8);
+    expect(await RequestPart.count()).toBe(7);
     expect(await seeder.pending()).toHaveLength(0);
 
     await seeder.down({ to: 0 });
     expect(await MaintenanceRequest.count()).toBe(0);
     expect(await Site.count()).toBe(0);
     expect(await Technician.count({ paranoid: false })).toBe(0);
+    expect(await Part.count()).toBe(0);
   });
 });
 
