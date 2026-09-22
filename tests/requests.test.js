@@ -133,7 +133,8 @@ describe("PATCH /api/requests/:id", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.description).toBe("Слышен стук в гондоле");
-    expect(res.body.data.plannedAt).toBe("2026-09-25T09:00:00Z");
+    // дата-время нормализуется к UTC с миллисекундами, как и все метки времени из БД
+    expect(res.body.data.plannedAt).toBe("2026-09-25T09:00:00.000Z");
     expect(res.body.data.status).toBe("new");
     expect(res.body.data.equipmentId).toBe(equipment.id);
     expect(res.body.data.updatedAt >= created.updatedAt).toBe(true);

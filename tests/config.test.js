@@ -8,7 +8,6 @@ describe("loadConfig", () => {
     expect(config.env).toBe("development");
     expect(config.isProduction).toBe(false);
     expect(config.logLevel).toBe("info");
-    expect(config.storage).toEqual({ driver: "file", dataDir: "data" });
     expect(config.db).toEqual({
       host: "localhost",
       port: 5432,

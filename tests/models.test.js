@@ -1,5 +1,4 @@
 import { createTestSequelize } from "./helpers/db.js";
-import { createMigrator } from "../src/db/migrator.js";
 import { defineModels } from "../src/db/models/index.js";
 
 describe("модели Sequelize", () => {
@@ -8,7 +7,6 @@ describe("модели Sequelize", () => {
 
   beforeAll(async () => {
     sequelize = createTestSequelize();
-    await createMigrator({ sequelize }).up();
     models = defineModels(sequelize);
   });
 

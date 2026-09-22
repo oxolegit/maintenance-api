@@ -1,8 +1,8 @@
 import { loadConfig } from "../../src/config/index.js";
 import { createLogger } from "../../src/logger.js";
-import { createMemoryStorage } from "../../src/repositories/storage/memoryStorage.js";
 import { createRepositories } from "../../src/repositories/index.js";
 import { createApp } from "../../src/app.js";
+import { getTestSequelize } from "./db.js";
 
 export const API_KEY = "test-api-key";
 
@@ -35,13 +35,12 @@ export const fakeForecastDay = (overrides = {}) => ({
 export async function buildApp({ env = {}, weatherClient, checkDatabase } = {}) {
   const config = loadConfig({
     NODE_ENV: "test",
-    STORAGE_DRIVER: "memory",
     LOG_LEVEL: "silent",
     API_KEY,
     DB_PASSWORD: "test",
     ...env,
   });
-  const repositories = await createRepositories({ storage: createMemoryStorage() });
+  const repositories = createRepositories({ sequelize: getTestSequelize() });
   const app = createApp({
     config,
     repositories,
