@@ -27,6 +27,7 @@ export function createRequestsRouter(controller, assigneesController) {
     validate({ params: idParams, body: changeStatusSchema }),
     controller.changeStatus,
   );
+  router.get("/:id/history", validate({ params: idParams }), controller.history);
   router.delete("/:id", validate({ params: idParams }), controller.remove);
 
   // бригада — подресурс заявки: POST задаёт состав целиком, DELETE снимает одного специалиста

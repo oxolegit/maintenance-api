@@ -31,9 +31,15 @@ function buildFilters({
   };
 }
 
-export function createRequestService({ requestRepository, equipmentRepository }) {
-  async function getById(id) {
-    const request = await requestRepository.findById(id);
+export function createRequestService({
+  requestRepository,
+  equipmentRepository,
+  assigneeRepository,
+  historyRepository,
+  transaction,
+}) {
+  async function getById(id, options) {
+    const request = await requestRepository.findById(id, options);
     if (!request) {
       throw new NotFoundError(`Заявка ${id} не найдена`);
     }
@@ -61,6 +67,7 @@ export function createRequestService({ requestRepository, equipmentRepository })
     return { items, total, page, limit };
   }
 
+  // Заявка и первая запись журнала (→ new) появляются в одной транзакции
   async function create(data) {
     const equipment = await getEquipment(data.equipmentId);
     if (equipment.status === "decommissioned") {
@@ -68,7 +75,32 @@ export function createRequestService({ requestRepository, equipmentRepository })
         code: "EQUIPMENT_DECOMMISSIONED",
       });
     }
-    return requestRepository.create({ ...data, status: "new" });
+    return transaction(async (t) => {
+      const request = await requestRepository.create(
+        { ...data, status: "new" },
+        { transaction: t },
+      );
+      await historyRepository.append(
+        { requestId: request.id, previousStatus: null, newStatus: "new", author: request.author },
+        { transaction: t },
+      );
+      return request;
+    });
+  }
+
+  function assertTransition(request, status) {
+    if (!canTransition(request.status, status)) {
+      const allowed = STATUS_TRANSITIONS[request.status].join(", ") || "нет";
+      throw new ConflictError(`Переход из статуса ${request.status} в ${status} недопустим`, {
+        code: "INVALID_STATUS_TRANSITION",
+        details: [
+          {
+            field: "status",
+            message: `Из статуса ${request.status} допустимы переходы: ${allowed}`,
+          },
+        ],
+      });
+    }
   }
 
   async function importOne(item, index) {
@@ -120,21 +152,34 @@ export function createRequestService({ requestRepository, equipmentRepository })
       return requestRepository.update(id, patch);
     },
 
-    async changeStatus(id, status) {
-      const request = await getById(id);
-      if (!canTransition(request.status, status)) {
-        const allowed = STATUS_TRANSITIONS[request.status].join(", ") || "нет";
-        throw new ConflictError(`Переход из статуса ${request.status} в ${status} недопустим`, {
-          code: "INVALID_STATUS_TRANSITION",
-          details: [
-            {
-              field: "status",
-              message: `Из статуса ${request.status} допустимы переходы: ${allowed}`,
-            },
-          ],
-        });
-      }
-      return requestRepository.update(id, { status });
+    // Смена статуса — одна транзакция: строка заявки блокируется (FOR UPDATE), поэтому два
+    // параллельных перехода выстраиваются в очередь и второй получает 409; обновление заявки
+    // и запись в журнал либо применяются вместе, либо откатываются вместе
+    changeStatus(id, { status, author = "system", comment = null }) {
+      return transaction(async (t) => {
+        const options = { transaction: t };
+        const request = await getById(id, { ...options, lock: true });
+        assertTransition(request, status);
+        if (status === "in_progress") {
+          const assigned = await assigneeRepository.countByRequest(id, options);
+          if (assigned === 0) {
+            throw new ConflictError("Нельзя взять заявку в работу без назначенных исполнителей", {
+              code: "REQUEST_HAS_NO_ASSIGNEES",
+            });
+          }
+        }
+        const updated = await requestRepository.update(id, { status }, options);
+        await historyRepository.append(
+          { requestId: id, previousStatus: request.status, newStatus: status, author, comment },
+          options,
+        );
+        return updated;
+      });
+    },
+
+    async history(id) {
+      await getById(id);
+      return historyRepository.listByRequest(id);
     },
 
     async remove(id) {

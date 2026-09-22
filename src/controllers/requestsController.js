@@ -30,7 +30,11 @@ export function createRequestsController({ requestService }) {
 
     async changeStatus(req, res) {
       const { params, body } = req.validated;
-      res.json({ data: await requestService.changeStatus(params.id, body.status) });
+      res.json({ data: await requestService.changeStatus(params.id, body) });
+    },
+
+    async history(req, res) {
+      res.json({ data: await requestService.history(req.validated.params.id) });
     },
 
     async remove(req, res) {
