@@ -8,8 +8,13 @@ import {
   weatherQuerySchema,
 } from "../validators/equipment.js";
 import { equipmentRequestsQuerySchema } from "../validators/requests.js";
+import { passportSchema } from "../validators/passports.js";
 
-export function createEquipmentRouter({ equipmentController, requestsController }) {
+export function createEquipmentRouter({
+  equipmentController,
+  requestsController,
+  passportController,
+}) {
   const router = Router();
 
   router.get("/", validate({ query: equipmentListQuerySchema }), equipmentController.list);
@@ -33,6 +38,15 @@ export function createEquipmentRouter({ equipmentController, requestsController 
     validate({ params: idParams, query: weatherQuerySchema }),
     equipmentController.weather,
   );
+
+  // паспорт — единственный вложенный объект (1:1), поэтому PUT без собственного идентификатора
+  router.get("/:id/passport", validate({ params: idParams }), passportController.get);
+  router.put(
+    "/:id/passport",
+    validate({ params: idParams, body: passportSchema }),
+    passportController.put,
+  );
+  router.delete("/:id/passport", validate({ params: idParams }), passportController.remove);
 
   return router;
 }
