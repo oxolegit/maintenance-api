@@ -92,7 +92,7 @@ describe("миграции", () => {
 
     await migrator.up();
     expect(await migrator.pending()).toHaveLength(0);
-    expect(await migrator.executed()).toHaveLength(8);
+    expect(await migrator.executed()).toHaveLength(10);
   });
 
   test("журнал статусов не редактируется напрямую, но удаляется каскадом вместе с заявкой", async () => {
