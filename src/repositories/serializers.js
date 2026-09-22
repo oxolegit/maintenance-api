@@ -110,6 +110,19 @@ export function assigneeToItem(row) {
   };
 }
 
+export function historyToItem(row) {
+  const plain = row.get({ plain: true });
+  return {
+    id: plain.id,
+    requestId: plain.requestId,
+    previousStatus: plain.previousStatus,
+    newStatus: plain.newStatus,
+    author: plain.author,
+    comment: plain.comment,
+    changedAt: iso(plain.changedAt),
+  };
+}
+
 export function requestToItem(row) {
   const plain = row.get({ plain: true });
   const item = {
@@ -120,6 +133,7 @@ export function requestToItem(row) {
     priority: plain.priority,
     status: plain.status,
     plannedAt: iso(plain.plannedAt),
+    author: plain.author,
     createdAt: iso(plain.createdAt),
     updatedAt: iso(plain.updatedAt),
   };

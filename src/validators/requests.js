@@ -11,6 +11,11 @@ import {
 import { REQUEST_PRIORITIES, REQUEST_STATUSES, REQUEST_SORT_FIELDS } from "../models/request.js";
 
 const TITLE_MESSAGE = "Длина должна быть от 5 до 120 символов";
+const AUTHOR_MESSAGE = "Длина должна быть от 1 до 100 символов";
+
+// автор действия: имя или логин; аутентификации по пользователям нет, поэтому по умолчанию system
+const author = () =>
+  optionalString().trim().min(1, { error: AUTHOR_MESSAGE }).max(100, { error: AUTHOR_MESSAGE });
 
 const requestShape = {
   equipmentId: uuid(),
@@ -21,6 +26,7 @@ const requestShape = {
   description: optionalString().trim().max(2000, { error: "Не более 2000 символов" }),
   priority: enumOf(REQUEST_PRIORITIES),
   plannedAt: isoDateTime().nullable(),
+  author: author(),
 };
 
 export const createRequestSchema = z.object({
@@ -28,6 +34,7 @@ export const createRequestSchema = z.object({
   description: requestShape.description.default(""),
   priority: requestShape.priority.default("medium"),
   plannedAt: requestShape.plannedAt.default(null),
+  author: requestShape.author.default("system"),
 });
 
 export const updateRequestSchema = z
@@ -44,6 +51,12 @@ export const updateRequestSchema = z
 
 export const changeStatusSchema = z.object({
   status: enumOf(REQUEST_STATUSES),
+  author: author().default("system"),
+  comment: optionalString()
+    .trim()
+    .max(500, { error: "Не более 500 символов" })
+    .nullable()
+    .default(null),
 });
 
 const requestFilters = {
