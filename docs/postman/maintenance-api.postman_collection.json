@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "maintenance-api",
-    "description": "Коллекция для проверки REST API учёта заявок на обслуживание оборудования.\n\nПеред запуском выберите окружение «maintenance-api local» (baseUrl, apiKey). Запросы рассчитаны на последовательный запуск сверху вниз: идентификаторы созданных сущностей сохраняются в переменные коллекции. Папку «Лимит частоты» запускайте последней — после неё API отвечает 429 до конца окна лимита.",
+    "description": "Коллекция для проверки REST API учёта заявок на обслуживание оборудования (Кейс 2 + Кейс 3: PostgreSQL, площадки, паспорта, специалисты, бригады, журнал статусов, запчасти, отчёты).\n\nПеред запуском выберите окружение «maintenance-api local» (baseUrl, apiKey). Запросы рассчитаны на последовательный запуск сверху вниз: идентификаторы созданных сущностей сохраняются в переменные коллекции. Папку «Лимит частоты» запускайте последней — после неё API отвечает 429 до конца окна лимита.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -60,6 +60,42 @@
     {
       "key": "rateLimitMax",
       "value": "100"
+    },
+    {
+      "key": "siteId",
+      "value": ""
+    },
+    {
+      "key": "siteCode",
+      "value": ""
+    },
+    {
+      "key": "technicianId",
+      "value": ""
+    },
+    {
+      "key": "secondTechnicianId",
+      "value": ""
+    },
+    {
+      "key": "employeeNumber",
+      "value": ""
+    },
+    {
+      "key": "partId",
+      "value": ""
+    },
+    {
+      "key": "sku",
+      "value": ""
+    },
+    {
+      "key": "partsRequestId",
+      "value": ""
+    },
+    {
+      "key": "brigadeRequestId",
+      "value": ""
     }
   ],
   "item": [
@@ -90,6 +126,182 @@
                   "pm.test(\"Статус сервиса ok\", () => {",
                   "  pm.expect(pm.response.json().data.status).to.eql(\"ok\");",
                   "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sites",
+      "description": "Площадки: CRUD и привязка оборудования",
+      "item": [
+        {
+          "name": "Создать площадку",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sites",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sites"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Останинская ВЭС\",\n  \"code\": \"{{siteCode}}\",\n  \"region\": \"Крым, Ленинский район\",\n  \"location\": {\n    \"lat\": 45.3107,\n    \"lon\": 35.7745\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set(\"siteCode\", \"S\" + Date.now().toString(36).toUpperCase());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Есть заголовок Location\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"Location\")).to.match(/^\\/api\\/sites\\/[0-9a-f-]{36}$/);",
+                  "});",
+                  "pm.test(\"Код приведён к верхнему регистру, координаты сохранены\", () => {",
+                  "  const { data } = pm.response.json();",
+                  "  pm.expect(data.code).to.eql(pm.collectionVariables.get(\"siteCode\"));",
+                  "  pm.expect(data.location).to.eql({ lat: 45.3107, lon: 35.7745 });",
+                  "  pm.collectionVariables.set(\"siteId\", data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Список площадок (поиск по названию)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sites?q=останин&sort=name&order=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sites"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "останин"
+                },
+                {
+                  "key": "sort",
+                  "value": "name"
+                },
+                {
+                  "key": "order",
+                  "value": "asc"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Тело содержит массив data и метаданные\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an(\"array\");",
+                  "  pm.expect(body.meta).to.include.keys(\"total\", \"page\", \"limit\", \"pages\");",
+                  "});",
+                  "pm.test(\"Найдена созданная площадка\", () => {",
+                  "  const ids = pm.response.json().data.map((item) => item.id);",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get(\"siteId\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Карточка площадки",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sites/{{siteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sites", "{{siteId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Тело содержит объект data\", () => {",
+                  "  pm.expect(pm.response.json()).to.have.property(\"data\").that.is.an(\"object\");",
+                  "});",
+                  "pm.test(\"Возвращена нужная запись\", () => pm.expect(pm.response.json().data.id).to.eql(pm.collectionVariables.get(\"siteId\")));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Частичное обновление площадки",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sites/{{siteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sites", "{{siteId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"region\": \"Крым, Ленинский район, с. Останино\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Регион обновлён\", () => pm.expect(pm.response.json().data.region).to.eql(\"Крым, Ленинский район, с. Останино\"));"
                 ],
                 "type": "text/javascript"
               }
@@ -453,6 +665,415 @@
       ]
     },
     {
+      "name": "Passport",
+      "description": "Паспорт оборудования (1:1) и площадка в карточке",
+      "item": [
+        {
+          "name": "Привязать оборудование к площадке",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/equipment/{{equipmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "equipment", "{{equipmentId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"siteId\": \"{{siteId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"В карточке появилась площадка\", () => {",
+                  "  const { data } = pm.response.json();",
+                  "  pm.expect(data.siteId).to.eql(pm.collectionVariables.get(\"siteId\"));",
+                  "  pm.expect(data.site).to.include.keys(\"id\", \"name\", \"code\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Заполнить паспорт (PUT → 201)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/equipment/{{equipmentId}}/passport",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "equipment", "{{equipmentId}}", "passport"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"manufacturer\": \"Vestas\",\n  \"model\": \"V90-2.0\",\n  \"ratedPowerKw\": 2000,\n  \"lastInspectionAt\": \"2026-04-15\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Паспорт привязан к оборудованию\", () => {",
+                  "  const { data } = pm.response.json();",
+                  "  pm.expect(data.equipmentId).to.eql(pm.collectionVariables.get(\"equipmentId\"));",
+                  "  pm.expect(data.ratedPowerKw).to.eql(2000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Заменить паспорт (PUT → 200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/equipment/{{equipmentId}}/passport",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "equipment", "{{equipmentId}}", "passport"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"manufacturer\": \"Vestas\",\n  \"model\": \"V90-3.0\",\n  \"ratedPowerKw\": 3000,\n  \"lastInspectionAt\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Модель обновлена, поверка сброшена\", () => {",
+                  "  const { data } = pm.response.json();",
+                  "  pm.expect(data.model).to.eql(\"V90-3.0\");",
+                  "  pm.expect(data.lastInspectionAt).to.be.null;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Паспорт в карточке оборудования",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/equipment/{{equipmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "equipment", "{{equipmentId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Карточка содержит site и passport\", () => {",
+                  "  const { data } = pm.response.json();",
+                  "  pm.expect(data.passport.model).to.eql(\"V90-3.0\");",
+                  "  pm.expect(data.site.id).to.eql(pm.collectionVariables.get(\"siteId\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Оборудование площадки (вложенный ресурс)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sites/{{siteId}}/equipment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sites", "{{siteId}}", "equipment"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Тело содержит массив data и метаданные\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an(\"array\");",
+                  "  pm.expect(body.meta).to.include.keys(\"total\", \"page\", \"limit\", \"pages\");",
+                  "});",
+                  "pm.test(\"На площадке только привязанное оборудование\", () => {",
+                  "  const { data } = pm.response.json();",
+                  "  data.forEach((item) => pm.expect(item.siteId).to.eql(pm.collectionVariables.get(\"siteId\")));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Technicians",
+      "description": "Справочник специалистов, мягкое удаление",
+      "item": [
+        {
+          "name": "Создать специалиста (ведущий)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/technicians",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "technicians"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Кравченко Игорь Валентинович\",\n  \"specialization\": \"инженер по ВЭУ\",\n  \"employeeNumber\": \"{{employeeNumber}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set(\"employeeNumber\", \"T-\" + Date.now().toString(36).toUpperCase());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Есть заголовок Location\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"Location\")).to.match(/^\\/api\\/technicians\\/[0-9a-f-]{36}$/);",
+                  "});",
+                  "pm.test(\"Табельный номер сохранён\", () => {",
+                  "  const { data } = pm.response.json();",
+                  "  pm.expect(data.employeeNumber).to.eql(pm.collectionVariables.get(\"employeeNumber\"));",
+                  "  pm.collectionVariables.set(\"technicianId\", data.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Создать специалиста (член бригады)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/technicians",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "technicians"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Литвиненко Павел Андреевич\",\n  \"specialization\": \"промышленный альпинист\",\n  \"employeeNumber\": \"{{employeeNumber}}-2\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"secondTechnicianId\", pm.response.json().data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Список специалистов (фильтр по специализации)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/technicians?specialization=альпинист&sort=fullName&order=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "technicians"],
+              "query": [
+                {
+                  "key": "specialization",
+                  "value": "альпинист"
+                },
+                {
+                  "key": "sort",
+                  "value": "fullName"
+                },
+                {
+                  "key": "order",
+                  "value": "asc"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Тело содержит массив data и метаданные\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an(\"array\");",
+                  "  pm.expect(body.meta).to.include.keys(\"total\", \"page\", \"limit\", \"pages\");",
+                  "});",
+                  "pm.test(\"Все элементы соответствуют фильтру\", () => {",
+                  "  pm.response.json().data.forEach((item) => pm.expect(item.specialization).to.include(\"альпинист\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Карточка специалиста",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/technicians/{{technicianId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "technicians", "{{technicianId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Тело содержит объект data\", () => {",
+                  "  pm.expect(pm.response.json()).to.have.property(\"data\").that.is.an(\"object\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Частичное обновление специалиста",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/technicians/{{technicianId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "technicians", "{{technicianId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"specialization\": \"ведущий инженер по ВЭУ\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Специализация обновлена\", () => pm.expect(pm.response.json().data.specialization).to.eql(\"ведущий инженер по ВЭУ\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Requests",
       "item": [
         {
@@ -687,6 +1308,45 @@
           "response": []
         },
         {
+          "name": "Назначить бригаду перед взятием в работу",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{requestId}}/assignees",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{requestId}}", "assignees"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignees\": [\n    {\n      \"technicianId\": \"{{technicianId}}\",\n      \"role\": \"lead\",\n      \"hours\": 6\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Назначен ведущий\", () => pm.expect(pm.response.json().data[0].role).to.eql(\"lead\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
           "name": "Сменить статус: new → in_progress",
           "request": {
             "method": "PATCH",
@@ -746,7 +1406,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"done\"\n}",
+              "raw": "{\n  \"status\": \"done\",\n  \"author\": \"Кравченко И. В.\",\n  \"comment\": \"работы выполнены\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -814,7 +1474,213 @@
             }
           ],
           "response": []
+        }
+      ]
+    },
+    {
+      "name": "Brigade & History",
+      "description": "Назначение бригады одной транзакцией и журнал статусов",
+      "item": [
+        {
+          "name": "Создать открытую заявку для бригады",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"equipmentId\": \"{{equipmentId}}\",\n  \"title\": \"Балансировка ротора\",\n  \"priority\": \"critical\",\n  \"author\": \"диспетчер\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"brigadeRequestId\", pm.response.json().data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
         },
+        {
+          "name": "Назначить бригаду из двух специалистов",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{brigadeRequestId}}/assignees",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{brigadeRequestId}}", "assignees"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignees\": [\n    {\n      \"technicianId\": \"{{technicianId}}\",\n      \"role\": \"lead\",\n      \"hours\": 8\n    },\n    {\n      \"technicianId\": \"{{secondTechnicianId}}\",\n      \"role\": \"member\",\n      \"hours\": 4\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Состав заменён целиком: ведущий и член бригады\", () => {",
+                  "  const { data } = pm.response.json();",
+                  "  pm.expect(data.map((item) => item.role)).to.eql([\"lead\", \"member\"]);",
+                  "  pm.expect(data[0].technician).to.include.keys(\"fullName\", \"employeeNumber\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Бригада заявки",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{brigadeRequestId}}/assignees",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{brigadeRequestId}}", "assignees"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Два назначения\", () => pm.expect(pm.response.json().data).to.have.length(2));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Снять члена бригады",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{brigadeRequestId}}/assignees/{{secondTechnicianId}}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "requests",
+                "{{brigadeRequestId}}",
+                "assignees",
+                "{{secondTechnicianId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test(\"Код ответа 204\", () => pm.response.to.have.status(204));"],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Карточка заявки с бригадой и оборудованием",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{brigadeRequestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{brigadeRequestId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"В карточке остался только ведущий и есть оборудование\", () => {",
+                  "  const { data } = pm.response.json();",
+                  "  pm.expect(data.assignees).to.have.length(1);",
+                  "  pm.expect(data.equipment).to.include.keys(\"id\", \"name\", \"serialNumber\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Журнал статусов заявки",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{requestId}}/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{requestId}}", "history"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Журнал: создание, in_progress, done\", () => {",
+                  "  const rows = pm.response.json().data;",
+                  "  pm.expect(rows.map((row) => row.newStatus)).to.eql([\"new\", \"in_progress\", \"done\"]);",
+                  "  pm.expect(rows[0].previousStatus).to.be.null;",
+                  "  pm.expect(rows[2]).to.include.keys(\"author\", \"comment\", \"changedAt\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Requests: завершение",
+      "description": "Удаление отработанной заявки и заготовки для остальных папок",
+      "item": [
         {
           "name": "Удалить заявку",
           "request": {
@@ -831,6 +1697,45 @@
               "listen": "test",
               "script": {
                 "exec": ["pm.test(\"Код ответа 204\", () => pm.response.to.have.status(204));"],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Создать заявку для списания запчастей",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"equipmentId\": \"{{equipmentId}}\",\n  \"title\": \"Замена подшипника по регламенту\",\n  \"priority\": \"medium\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"partsRequestId\", pm.response.json().data.id);"
+                ],
                 "type": "text/javascript"
               }
             }
@@ -869,6 +1774,388 @@
                 "exec": [
                   "pm.test(\"Код ответа 201\", () => pm.response.to.have.status(201));",
                   "pm.collectionVariables.set(\"requestId\", pm.response.json().data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Parts",
+      "description": "Склад запчастей и списание на заявку в транзакции",
+      "item": [
+        {
+          "name": "Создать запчасть",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/parts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parts"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Подшипник главного вала SKF 23148\",\n  \"sku\": \"{{sku}}\",\n  \"unit\": \"шт\",\n  \"stockQty\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set(\"sku\", \"BRG-\" + Date.now().toString(36).toUpperCase());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Есть заголовок Location\", () => {",
+                  "  pm.expect(pm.response.headers.get(\"Location\")).to.match(/^\\/api\\/parts\\/[0-9a-f-]{36}$/);",
+                  "});",
+                  "pm.collectionVariables.set(\"partId\", pm.response.json().data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Склад (только в наличии)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parts?inStock=true&sort=name&order=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parts"],
+              "query": [
+                {
+                  "key": "inStock",
+                  "value": "true"
+                },
+                {
+                  "key": "sort",
+                  "value": "name"
+                },
+                {
+                  "key": "order",
+                  "value": "asc"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Тело содержит массив data и метаданные\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an(\"array\");",
+                  "  pm.expect(body.meta).to.include.keys(\"total\", \"page\", \"limit\", \"pages\");",
+                  "});",
+                  "pm.test(\"Остатки положительные\", () => pm.response.json().data.forEach((item) => pm.expect(item.stockQty).to.be.above(0)));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Списать запчасти на заявку",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{partsRequestId}}/parts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{partsRequestId}}", "parts"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"partId\": \"{{partId}}\",\n      \"quantity\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Остаток уменьшился на списанное количество\", () => {",
+                  "  const { data } = pm.response.json();",
+                  "  pm.expect(data[0].quantity).to.eql(2);",
+                  "  pm.expect(data[0].part.stockQty).to.eql(3);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Запчасти заявки",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{partsRequestId}}/parts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{partsRequestId}}", "parts"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Одна позиция\", () => pm.expect(pm.response.json().data).to.have.length(1));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Вернуть позицию на склад",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{partsRequestId}}/parts/{{partId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{partsRequestId}}", "parts", "{{partId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test(\"Код ответа 204\", () => pm.response.to.have.status(204));"],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Карточка запчасти после возврата",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parts/{{partId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parts", "{{partId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Остаток восстановлен\", () => pm.expect(pm.response.json().data.stockQty).to.eql(5));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Приход на склад",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/parts/{{partId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parts", "{{partId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stockQty\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Остаток задан\", () => pm.expect(pm.response.json().data.stockQty).to.eql(1));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "description": "Сводка по площадке и отчёт по нагрузке (прямой SQL)",
+      "item": [
+        {
+          "name": "Сводка по площадке",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sites/{{siteId}}/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sites", "{{siteId}}", "summary"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Сводка содержит разрезы по статусам и приоритетам\", () => {",
+                  "  const { data } = pm.response.json();",
+                  "  pm.expect(data).to.include.keys(\"total\", \"open\", \"byStatus\", \"byPriority\", \"closed\", \"avgCloseHours\");",
+                  "  pm.expect(data.byStatus).to.include.keys(\"new\", \"in_progress\", \"done\", \"rejected\");",
+                  "  pm.expect(data.total).to.be.at.least(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Отчёт по нагрузке на оборудование",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/equipment-load?siteId={{siteId}}&minRequests=1&sort=requestsTotal&order=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "equipment-load"],
+              "query": [
+                {
+                  "key": "siteId",
+                  "value": "{{siteId}}"
+                },
+                {
+                  "key": "minRequests",
+                  "value": "1"
+                },
+                {
+                  "key": "sort",
+                  "value": "requestsTotal"
+                },
+                {
+                  "key": "order",
+                  "value": "desc"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Тело содержит массив data и метаданные\", () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.data).to.be.an(\"array\");",
+                  "  pm.expect(body.meta).to.include.keys(\"total\", \"page\", \"limit\", \"pages\");",
+                  "});",
+                  "pm.test(\"Строка отчёта содержит агрегаты\", () => {",
+                  "  const { data } = pm.response.json();",
+                  "  pm.expect(data[0]).to.include.keys(\"equipmentId\", \"requestsTotal\", \"requestsDone\", \"requestsOpen\", \"plannedHours\", \"lastMaintenanceAt\");",
+                  "  pm.expect(data[0].requestsTotal).to.be.at.least(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Отчёт с периодом и порогом (HAVING)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports/equipment-load?from=2026-01-01&to=2030-12-31&minRequests=1000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reports", "equipment-load"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2030-12-31"
+                },
+                {
+                  "key": "minRequests",
+                  "value": "1000"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Групп с тысячей заявок нет\", () => pm.expect(pm.response.json().meta.total).to.eql(0));"
                 ],
                 "type": "text/javascript"
               }
@@ -1368,6 +2655,392 @@
                   "pm.test(\"Ошибка в едином формате\", () => {",
                   "  const { error } = pm.response.json();",
                   "  pm.expect(error.code).to.eql(\"UNAUTHORIZED\");",
+                  "  pm.expect(error.message).to.be.a(\"string\");",
+                  "  pm.expect(error.requestId).to.be.a(\"string\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "404 — назначение несуществующего специалиста",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{requestId}}/assignees",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{requestId}}", "assignees"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignees\": [\n    {\n      \"technicianId\": \"0f1b6f0e-2f5e-4a60-9f7e-1c0b8d5b1a11\",\n      \"role\": \"lead\",\n      \"hours\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Ошибка в едином формате\", () => {",
+                  "  const { error } = pm.response.json();",
+                  "  pm.expect(error.code).to.eql(\"RELATED_NOT_FOUND\");",
+                  "  pm.expect(error.message).to.be.a(\"string\");",
+                  "  pm.expect(error.requestId).to.be.a(\"string\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "409 — повторное назначение специалиста в одном составе",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{requestId}}/assignees",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{requestId}}", "assignees"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignees\": [\n    {\n      \"technicianId\": \"{{technicianId}}\",\n      \"role\": \"lead\",\n      \"hours\": 1\n    },\n    {\n      \"technicianId\": \"{{technicianId}}\",\n      \"role\": \"member\",\n      \"hours\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Ошибка в едином формате\", () => {",
+                  "  const { error } = pm.response.json();",
+                  "  pm.expect(error.code).to.eql(\"UNIQUE_VIOLATION\");",
+                  "  pm.expect(error.message).to.be.a(\"string\");",
+                  "  pm.expect(error.requestId).to.be.a(\"string\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "422 — бригада без ведущего специалиста",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{requestId}}/assignees",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{requestId}}", "assignees"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignees\": [\n    {\n      \"technicianId\": \"{{technicianId}}\",\n      \"role\": \"member\",\n      \"hours\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Ошибка в едином формате\", () => {",
+                  "  const { error } = pm.response.json();",
+                  "  pm.expect(error.code).to.eql(\"VALIDATION_ERROR\");",
+                  "  pm.expect(error.message).to.be.a(\"string\");",
+                  "  pm.expect(error.requestId).to.be.a(\"string\");",
+                  "});",
+                  "pm.test(\"Указано поле assignees\", () => pm.expect(pm.response.json().error.details[0].field).to.eql(\"assignees\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "409 — перевод в in_progress без бригады",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{requestId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{requestId}}", "status"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Ошибка в едином формате\", () => {",
+                  "  const { error } = pm.response.json();",
+                  "  pm.expect(error.code).to.eql(\"REQUEST_HAS_NO_ASSIGNEES\");",
+                  "  pm.expect(error.message).to.be.a(\"string\");",
+                  "  pm.expect(error.requestId).to.be.a(\"string\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "409 — списание при нехватке остатка",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{requestId}}/parts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{requestId}}", "parts"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"partId\": \"{{partId}}\",\n      \"quantity\": 100\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Ошибка в едином формате\", () => {",
+                  "  const { error } = pm.response.json();",
+                  "  pm.expect(error.code).to.eql(\"INSUFFICIENT_STOCK\");",
+                  "  pm.expect(error.message).to.be.a(\"string\");",
+                  "  pm.expect(error.requestId).to.be.a(\"string\");",
+                  "});",
+                  "pm.test(\"Указано, сколько запрошено и сколько на складе\", () => pm.expect(pm.response.json().error.details[0].message).to.match(/запрошено 100/));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "404 — списание несуществующей запчасти",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests/{{requestId}}/parts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests", "{{requestId}}", "parts"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"partId\": \"0f1b6f0e-2f5e-4a60-9f7e-1c0b8d5b1a11\",\n      \"quantity\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Ошибка в едином формате\", () => {",
+                  "  const { error } = pm.response.json();",
+                  "  pm.expect(error.code).to.eql(\"PART_NOT_FOUND\");",
+                  "  pm.expect(error.message).to.be.a(\"string\");",
+                  "  pm.expect(error.requestId).to.be.a(\"string\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "409 — удаление площадки с оборудованием",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sites/{{siteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sites", "{{siteId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Ошибка в едином формате\", () => {",
+                  "  const { error } = pm.response.json();",
+                  "  pm.expect(error.code).to.eql(\"SITE_HAS_EQUIPMENT\");",
+                  "  pm.expect(error.message).to.be.a(\"string\");",
+                  "  pm.expect(error.requestId).to.be.a(\"string\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "409 — удаление специалиста, назначенного на открытую заявку",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/technicians/{{technicianId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "technicians", "{{technicianId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// перед проверкой назначаем ведущего на открытую заявку негативных сценариев",
+                  "pm.sendRequest({",
+                  "  url: pm.environment.get(\"baseUrl\") + \"/api/requests/\" + pm.collectionVariables.get(\"requestId\") + \"/assignees\",",
+                  "  method: \"POST\",",
+                  "  header: { \"Content-Type\": \"application/json\", \"X-API-Key\": pm.environment.get(\"apiKey\") },",
+                  "  body: { mode: \"raw\", raw: JSON.stringify({ assignees: [{ technicianId: pm.collectionVariables.get(\"technicianId\"), role: \"lead\", hours: 1 }] }) },",
+                  "}, () => {});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Ошибка в едином формате\", () => {",
+                  "  const { error } = pm.response.json();",
+                  "  pm.expect(error.code).to.eql(\"TECHNICIAN_ASSIGNED\");",
+                  "  pm.expect(error.message).to.be.a(\"string\");",
+                  "  pm.expect(error.requestId).to.be.a(\"string\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "409 — удаление запчасти с расходом",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parts/{{partId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parts", "{{partId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// списываем единицу, чтобы у запчасти появился расход",
+                  "pm.sendRequest({",
+                  "  url: pm.environment.get(\"baseUrl\") + \"/api/requests/\" + pm.collectionVariables.get(\"requestId\") + \"/parts\",",
+                  "  method: \"POST\",",
+                  "  header: { \"Content-Type\": \"application/json\", \"X-API-Key\": pm.environment.get(\"apiKey\") },",
+                  "  body: { mode: \"raw\", raw: JSON.stringify({ items: [{ partId: pm.collectionVariables.get(\"partId\"), quantity: 1 }] }) },",
+                  "}, () => {});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Код ответа 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"Ошибка в едином формате\", () => {",
+                  "  const { error } = pm.response.json();",
+                  "  pm.expect(error.code).to.eql(\"PART_IN_USE\");",
                   "  pm.expect(error.message).to.be.a(\"string\");",
                   "  pm.expect(error.requestId).to.be.a(\"string\");",
                   "});"
