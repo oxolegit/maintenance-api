@@ -1,4 +1,5 @@
 import { AppError, BadRequestError, PayloadTooLargeError } from "../errors/index.js";
+import { mapDbError } from "../db/errors.js";
 
 const BODY_PARSER_ERRORS = {
   "entity.parse.failed": () =>
@@ -19,7 +20,7 @@ function toAppError(error) {
   if (error.expose && error.status >= 400 && error.status < 500) {
     return new BadRequestError(error.message);
   }
-  return null;
+  return mapDbError(error);
 }
 
 export function createErrorHandler({ logger, isProduction }) {

@@ -27,8 +27,8 @@ export class UnauthorizedError extends AppError {
 }
 
 export class NotFoundError extends AppError {
-  constructor(message = "Ресурс не найден", { code = "NOT_FOUND" } = {}) {
-    super(message, { status: 404, code });
+  constructor(message = "Ресурс не найден", { code = "NOT_FOUND", details } = {}) {
+    super(message, { status: 404, code, details });
   }
 }
 
