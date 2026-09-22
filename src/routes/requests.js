@@ -8,8 +8,9 @@ import {
   requestListQuerySchema,
   batchRequestsSchema,
 } from "../validators/requests.js";
+import { assignBrigadeSchema, assigneeParams } from "../validators/assignees.js";
 
-export function createRequestsRouter(controller) {
+export function createRequestsRouter(controller, assigneesController) {
   const router = Router();
 
   router.get("/", validate({ query: requestListQuerySchema }), controller.list);
@@ -27,6 +28,19 @@ export function createRequestsRouter(controller) {
     controller.changeStatus,
   );
   router.delete("/:id", validate({ params: idParams }), controller.remove);
+
+  // бригада — подресурс заявки: POST задаёт состав целиком, DELETE снимает одного специалиста
+  router.get("/:id/assignees", validate({ params: idParams }), assigneesController.list);
+  router.post(
+    "/:id/assignees",
+    validate({ params: idParams, body: assignBrigadeSchema }),
+    assigneesController.assign,
+  );
+  router.delete(
+    "/:id/assignees/:technicianId",
+    validate({ params: assigneeParams }),
+    assigneesController.remove,
+  );
 
   return router;
 }
