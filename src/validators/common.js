@@ -53,9 +53,10 @@ export const dateQuery = () => z.iso.date({ error: "Ожидается дата 
 export function listQuery({ sortFields, defaultSort = sortFields[0], filters = {} }) {
   return z.object({
     page: z.coerce
-      .number({ error: "Должно быть целым числом от 1" })
-      .int({ error: "Должно быть целым числом от 1" })
-      .min(1, { error: "Должно быть целым числом от 1" })
+      .number({ error: "Должно быть целым числом от 1 до 10000" })
+      .int({ error: "Должно быть целым числом от 1 до 10000" })
+      .min(1, { error: "Должно быть целым числом от 1 до 10000" })
+      .max(10000, { error: "Должно быть целым числом от 1 до 10000" })
       .default(1),
     limit: z.coerce
       .number({ error: "Должно быть целым числом от 1 до 100" })

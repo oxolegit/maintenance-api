@@ -6,11 +6,13 @@ import { createPassportController } from "../controllers/passportController.js";
 import { createRequestsController } from "../controllers/requestsController.js";
 import { createTechniciansController } from "../controllers/techniciansController.js";
 import { createAssigneesController } from "../controllers/assigneesController.js";
+import { createReportsController } from "../controllers/reportsController.js";
 import { createHealthRouter } from "./health.js";
 import { createSitesRouter } from "./sites.js";
 import { createEquipmentRouter } from "./equipment.js";
 import { createRequestsRouter } from "./requests.js";
 import { createTechniciansRouter } from "./technicians.js";
+import { createReportsRouter } from "./reports.js";
 
 export function createApiRouter({ services, checkDatabase }) {
   const router = Router();
@@ -30,6 +32,7 @@ export function createApiRouter({ services, checkDatabase }) {
   );
   router.use("/requests", createRequestsRouter(requestsController, assigneesController));
   router.use("/technicians", createTechniciansRouter(techniciansController));
+  router.use("/reports", createReportsRouter(createReportsController(services)));
 
   return router;
 }

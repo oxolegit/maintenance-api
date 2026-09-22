@@ -4,6 +4,7 @@ import { createPassportService } from "./passportService.js";
 import { createRequestService } from "./requestService.js";
 import { createTechnicianService } from "./technicianService.js";
 import { createAssigneeService } from "./assigneeService.js";
+import { createReportService } from "./reportService.js";
 import { createWeatherService } from "./weatherService.js";
 
 export function createServices({ repositories, weatherClient, config, logger }) {
@@ -18,5 +19,6 @@ export function createServices({ repositories, weatherClient, config, logger }) 
     requestService: createRequestService(repositories),
     technicianService: createTechnicianService(repositories),
     assigneeService: createAssigneeService(repositories),
+    reportService: createReportService(repositories),
   };
 }
