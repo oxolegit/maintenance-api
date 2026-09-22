@@ -29,6 +29,21 @@ export const isoDate = () =>
     error: "Ожидается дата в формате ISO 8601 (ГГГГ-ММ-ДД)",
   });
 
+const LAT_MESSAGE = "Широта должна быть в диапазоне от -90 до 90";
+const LON_MESSAGE = "Долгота должна быть в диапазоне от -180 до 180";
+
+export const location = () =>
+  z.object(
+    {
+      lat: numberField().min(-90, { error: LAT_MESSAGE }).max(90, { error: LAT_MESSAGE }),
+      lon: numberField().min(-180, { error: LON_MESSAGE }).max(180, { error: LON_MESSAGE }),
+    },
+    {
+      error: (issue) =>
+        issue.input === undefined ? "Обязательное поле" : "Ожидается объект вида { lat, lon }",
+    },
+  );
+
 export const uuid = () => z.uuid({ error: "Ожидается идентификатор в формате UUID" });
 
 export const idParams = z.object({ id: uuid() });

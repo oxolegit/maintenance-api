@@ -1,15 +1,20 @@
 import { NotFoundError, ConflictError } from "../errors/index.js";
 import { dateRange } from "./filters.js";
 
-function buildFilters({ type, status, installedFrom, installedTo, q }) {
-  const filters = { type, status, installedAt: dateRange(installedFrom, installedTo) };
+function buildFilters({ siteId, type, status, installedFrom, installedTo, q }) {
+  const filters = { siteId, type, status, installedAt: dateRange(installedFrom, installedTo) };
   if (q) {
     filters.$or = [{ name: { contains: q } }, { serialNumber: { contains: q } }];
   }
   return filters;
 }
 
-export function createEquipmentService({ equipmentRepository, requestRepository, weatherService }) {
+export function createEquipmentService({
+  equipmentRepository,
+  requestRepository,
+  siteRepository,
+  weatherService,
+}) {
   async function getById(id) {
     const equipment = await equipmentRepository.findById(id);
     if (!equipment) {
@@ -25,6 +30,12 @@ export function createEquipmentService({ equipmentRepository, requestRepository,
         code: "SERIAL_NUMBER_TAKEN",
         details: [{ field: "serialNumber", message: "Серийный номер уже занят" }],
       });
+    }
+  }
+
+  async function assertSiteExists(siteId) {
+    if (siteId && !(await siteRepository.findById(siteId))) {
+      throw new NotFoundError(`Площадка ${siteId} не найдена`, { code: "SITE_NOT_FOUND" });
     }
   }
 
@@ -44,6 +55,7 @@ export function createEquipmentService({ equipmentRepository, requestRepository,
 
     async create(data) {
       await assertSerialNumberFree(data.serialNumber);
+      await assertSiteExists(data.siteId);
       return equipmentRepository.create(data);
     },
 
@@ -52,6 +64,7 @@ export function createEquipmentService({ equipmentRepository, requestRepository,
       if (patch.serialNumber) {
         await assertSerialNumberFree(patch.serialNumber, id);
       }
+      await assertSiteExists(patch.siteId);
       return equipmentRepository.update(id, patch);
     },
 

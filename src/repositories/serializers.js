@@ -1,24 +1,71 @@
-// Преобразование объектов API (контракт Кейса 2) в атрибуты моделей и обратно:
-// координаты хранятся двумя колонками, даты отдаются строками ISO
+// Преобразование объектов API в атрибуты моделей и обратно: координаты хранятся двумя
+// колонками, даты отдаются строками ISO, вложенные объекты появляются только там,
+// где они были загружены через include
 
 const iso = (value) => (value instanceof Date ? value.toISOString() : value);
+const day = (value) => (value === undefined ? undefined : String(value).slice(0, 10));
 
-export function equipmentToRow({ location, installedAt, ...data }) {
+function withLocation({ location, ...data }) {
   const row = { ...data };
   if (location) {
     row.latitude = location.lat;
     row.longitude = location.lon;
   }
+  return row;
+}
+
+export function siteToRow(data) {
+  return withLocation(data);
+}
+
+export function siteToItem(row) {
+  const plain = row.get({ plain: true });
+  return {
+    id: plain.id,
+    name: plain.name,
+    code: plain.code,
+    region: plain.region,
+    location: { lat: plain.latitude, lon: plain.longitude },
+    createdAt: iso(plain.createdAt),
+    updatedAt: iso(plain.updatedAt),
+  };
+}
+
+export function passportToRow({ lastInspectionAt, ...data }) {
+  const row = { ...data };
+  if (lastInspectionAt !== undefined) {
+    row.lastInspectionAt = lastInspectionAt === null ? null : day(lastInspectionAt);
+  }
+  return row;
+}
+
+export function passportToItem(row) {
+  const plain = typeof row.get === "function" ? row.get({ plain: true }) : row;
+  return {
+    id: plain.id,
+    equipmentId: plain.equipmentId,
+    manufacturer: plain.manufacturer,
+    model: plain.model,
+    ratedPowerKw: plain.ratedPowerKw,
+    lastInspectionAt: plain.lastInspectionAt,
+    createdAt: iso(plain.createdAt),
+    updatedAt: iso(plain.updatedAt),
+  };
+}
+
+export function equipmentToRow({ installedAt, ...data }) {
+  const row = withLocation(data);
   if (installedAt !== undefined) {
-    row.installedAt = String(installedAt).slice(0, 10);
+    row.installedAt = day(installedAt);
   }
   return row;
 }
 
 export function equipmentToItem(row) {
   const plain = row.get({ plain: true });
-  return {
+  const item = {
     id: plain.id,
+    siteId: plain.siteId,
     name: plain.name,
     type: plain.type,
     serialNumber: plain.serialNumber,
@@ -28,6 +75,13 @@ export function equipmentToItem(row) {
     createdAt: iso(plain.createdAt),
     updatedAt: iso(plain.updatedAt),
   };
+  if ("site" in plain) {
+    item.site = plain.site && { id: plain.site.id, name: plain.site.name, code: plain.site.code };
+  }
+  if ("passport" in plain) {
+    item.passport = plain.passport && passportToItem(plain.passport);
+  }
+  return item;
 }
 
 export function requestToItem(row) {
