@@ -84,9 +84,35 @@ export function equipmentToItem(row) {
   return item;
 }
 
+export function technicianToItem(row) {
+  const plain = typeof row.get === "function" ? row.get({ plain: true }) : row;
+  const item = {
+    id: plain.id,
+    fullName: plain.fullName,
+    specialization: plain.specialization,
+    employeeNumber: plain.employeeNumber,
+  };
+  if ("createdAt" in plain) {
+    item.createdAt = iso(plain.createdAt);
+    item.updatedAt = iso(plain.updatedAt);
+  }
+  return item;
+}
+
+export function assigneeToItem(row) {
+  const plain = typeof row.get === "function" ? row.get({ plain: true }) : row;
+  return {
+    technicianId: plain.technicianId,
+    role: plain.role,
+    hours: plain.hours,
+    technician: plain.technician ? technicianToItem(plain.technician) : undefined,
+    assignedAt: iso(plain.createdAt),
+  };
+}
+
 export function requestToItem(row) {
   const plain = row.get({ plain: true });
-  return {
+  const item = {
     id: plain.id,
     equipmentId: plain.equipmentId,
     title: plain.title,
@@ -97,4 +123,15 @@ export function requestToItem(row) {
     createdAt: iso(plain.createdAt),
     updatedAt: iso(plain.updatedAt),
   };
+  if ("equipment" in plain) {
+    item.equipment = plain.equipment && {
+      id: plain.equipment.id,
+      name: plain.equipment.name,
+      serialNumber: plain.equipment.serialNumber,
+    };
+  }
+  if ("assignees" in plain) {
+    item.assignees = plain.assignees.map(assigneeToItem);
+  }
+  return item;
 }
