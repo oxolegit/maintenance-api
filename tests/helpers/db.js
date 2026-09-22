@@ -30,12 +30,12 @@ export function getTestSequelize() {
   return shared;
 }
 
+// Чистая база перед каждым тестом, в том числе перед первым в файле — иначе данные
+// последнего теста предыдущего файла просочатся дальше
 export async function truncateAll() {
-  if (!shared) {
-    return;
-  }
-  const tables = Object.values(getModels(shared)).map((model) => model.getTableName());
-  await shared.query(`TRUNCATE TABLE ${tables.join(", ")} RESTART IDENTITY CASCADE`);
+  const sequelize = getTestSequelize();
+  const tables = Object.values(getModels(sequelize)).map((model) => model.getTableName());
+  await sequelize.query(`TRUNCATE TABLE ${tables.join(", ")} RESTART IDENTITY CASCADE`);
 }
 
 export async function closeTestDb() {
