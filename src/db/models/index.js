@@ -74,3 +74,13 @@ export function defineModels(sequelize) {
     RequestAssignee,
   };
 }
+
+const modelsByConnection = new WeakMap();
+
+// Модели определяются один раз на соединение: повторный define перезаписал бы их
+export function getModels(sequelize) {
+  if (!modelsByConnection.has(sequelize)) {
+    modelsByConnection.set(sequelize, defineModels(sequelize));
+  }
+  return modelsByConnection.get(sequelize);
+}
