@@ -5,6 +5,7 @@ import { defineMaintenanceRequest } from "./maintenanceRequest.js";
 import { defineRequestStatusHistory } from "./requestStatusHistory.js";
 import { defineTechnician } from "./technician.js";
 import { defineRequestAssignee } from "./requestAssignee.js";
+import { definePart, defineRequestPart } from "./part.js";
 
 // Модели повторяют схему из migrations/: имена колонок в snake_case даёт define.underscored,
 // ограничения (NOT NULL, UNIQUE, внешние ключи) живут в БД, здесь — их отражение для include
@@ -16,6 +17,8 @@ export function defineModels(sequelize) {
   const RequestStatusHistory = defineRequestStatusHistory(sequelize);
   const Technician = defineTechnician(sequelize);
   const RequestAssignee = defineRequestAssignee(sequelize);
+  const Part = definePart(sequelize);
+  const RequestPart = defineRequestPart(sequelize);
 
   Site.hasMany(Equipment, { as: "equipment", foreignKey: "siteId", onDelete: "RESTRICT" });
   Equipment.belongsTo(Site, { as: "site", foreignKey: "siteId" });
@@ -64,6 +67,28 @@ export function defineModels(sequelize) {
   RequestAssignee.belongsTo(Technician, { as: "technician", foreignKey: "technicianId" });
   Technician.hasMany(RequestAssignee, { as: "assignments", foreignKey: "technicianId" });
 
+  // расход запчастей: N:M с количеством в связующей таблице
+  MaintenanceRequest.belongsToMany(Part, {
+    as: "parts",
+    through: RequestPart,
+    foreignKey: "requestId",
+    otherKey: "partId",
+  });
+  Part.belongsToMany(MaintenanceRequest, {
+    as: "requests",
+    through: RequestPart,
+    foreignKey: "partId",
+    otherKey: "requestId",
+  });
+  MaintenanceRequest.hasMany(RequestPart, {
+    as: "partUsages",
+    foreignKey: "requestId",
+    onDelete: "CASCADE",
+  });
+  RequestPart.belongsTo(MaintenanceRequest, { as: "request", foreignKey: "requestId" });
+  RequestPart.belongsTo(Part, { as: "part", foreignKey: "partId" });
+  Part.hasMany(RequestPart, { as: "usages", foreignKey: "partId" });
+
   return {
     Site,
     Equipment,
@@ -72,6 +97,8 @@ export function defineModels(sequelize) {
     RequestStatusHistory,
     Technician,
     RequestAssignee,
+    Part,
+    RequestPart,
   };
 }
 

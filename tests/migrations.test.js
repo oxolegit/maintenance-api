@@ -9,6 +9,8 @@ const TABLES = [
   "request_status_history",
   "technicians",
   "request_assignees",
+  "parts",
+  "request_parts",
 ];
 
 const EQUIPMENT_ID = "11111111-1111-4111-8111-111111111111";
@@ -90,7 +92,7 @@ describe("миграции", () => {
 
     await migrator.up();
     expect(await migrator.pending()).toHaveLength(0);
-    expect(await migrator.executed()).toHaveLength(TABLES.length);
+    expect(await migrator.executed()).toHaveLength(8);
   });
 
   test("журнал статусов не редактируется напрямую, но удаляется каскадом вместе с заявкой", async () => {
