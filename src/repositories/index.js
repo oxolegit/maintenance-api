@@ -7,6 +7,7 @@ import { TechnicianRepository } from "./technicianRepository.js";
 import { AssigneeRepository } from "./assigneeRepository.js";
 import { HistoryRepository } from "./historyRepository.js";
 import { ReportRepository } from "./reportRepository.js";
+import { PartRepository, RequestPartRepository } from "./partRepository.js";
 
 // Единственное место, где сервисы соприкасаются с ORM: репозитории и функция transaction,
 // выполняющая работу в одной транзакции с откатом при исключении
@@ -21,6 +22,8 @@ export function createRepositories({ sequelize }) {
     assigneeRepository: new AssigneeRepository(models),
     historyRepository: new HistoryRepository(models),
     reportRepository: new ReportRepository({ sequelize }),
+    partRepository: new PartRepository(models),
+    requestPartRepository: new RequestPartRepository(models),
     transaction: (work) => sequelize.transaction(work),
   };
 }

@@ -9,8 +9,9 @@ import {
   batchRequestsSchema,
 } from "../validators/requests.js";
 import { assignBrigadeSchema, assigneeParams } from "../validators/assignees.js";
+import { writeOffSchema, requestPartParams } from "../validators/parts.js";
 
-export function createRequestsRouter(controller, assigneesController) {
+export function createRequestsRouter(controller, assigneesController, partsController) {
   const router = Router();
 
   router.get("/", validate({ query: requestListQuerySchema }), controller.list);
@@ -41,6 +42,19 @@ export function createRequestsRouter(controller, assigneesController) {
     "/:id/assignees/:technicianId",
     validate({ params: assigneeParams }),
     assigneesController.remove,
+  );
+
+  // расход запчастей по заявке: POST списывает позиции со склада, DELETE возвращает позицию
+  router.get("/:id/parts", validate({ params: idParams }), partsController.listByRequest);
+  router.post(
+    "/:id/parts",
+    validate({ params: idParams, body: writeOffSchema }),
+    partsController.writeOff,
+  );
+  router.delete(
+    "/:id/parts/:partId",
+    validate({ params: requestPartParams }),
+    partsController.returnToStock,
   );
 
   return router;

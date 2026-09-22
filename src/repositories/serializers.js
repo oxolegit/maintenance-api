@@ -123,6 +123,30 @@ export function historyToItem(row) {
   };
 }
 
+export function partToItem(row) {
+  const plain = typeof row.get === "function" ? row.get({ plain: true }) : row;
+  return {
+    id: plain.id,
+    name: plain.name,
+    sku: plain.sku,
+    unit: plain.unit,
+    stockQty: plain.stockQty,
+    createdAt: iso(plain.createdAt),
+    updatedAt: iso(plain.updatedAt),
+  };
+}
+
+export function requestPartToItem(row) {
+  const plain = row.get({ plain: true });
+  return {
+    partId: plain.partId,
+    quantity: plain.quantity,
+    part: plain.part ? partToItem(plain.part) : undefined,
+    createdAt: iso(plain.createdAt),
+    updatedAt: iso(plain.updatedAt),
+  };
+}
+
 export function requestToItem(row) {
   const plain = row.get({ plain: true });
   const item = {

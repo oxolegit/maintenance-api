@@ -5,6 +5,7 @@ import { createRequestService } from "./requestService.js";
 import { createTechnicianService } from "./technicianService.js";
 import { createAssigneeService } from "./assigneeService.js";
 import { createReportService } from "./reportService.js";
+import { createPartService } from "./partService.js";
 import { createWeatherService } from "./weatherService.js";
 
 export function createServices({ repositories, weatherClient, config, logger }) {
@@ -20,5 +21,6 @@ export function createServices({ repositories, weatherClient, config, logger }) 
     technicianService: createTechnicianService(repositories),
     assigneeService: createAssigneeService(repositories),
     reportService: createReportService(repositories),
+    partService: createPartService(repositories),
   };
 }
