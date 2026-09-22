@@ -21,14 +21,20 @@ function buildFilters({
   createdTo,
   plannedFrom,
   plannedTo,
+  q,
 }) {
-  return {
+  const filters = {
     status,
     priority,
     equipmentId,
     createdAt: dateRange(createdFrom, createdTo),
     plannedAt: dateRange(plannedFrom, plannedTo),
   };
+  if (q) {
+    // подстрока без учёта регистра (ILIKE), по теме — через триграммный индекс
+    filters.$or = [{ title: { contains: q } }, { description: { contains: q } }];
+  }
+  return filters;
 }
 
 export function createRequestService({

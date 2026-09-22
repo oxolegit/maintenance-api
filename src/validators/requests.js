@@ -66,6 +66,7 @@ const requestFilters = {
   createdTo: dateQuery().optional(),
   plannedFrom: dateQuery().optional(),
   plannedTo: dateQuery().optional(),
+  q: optionalString().trim().max(100, { error: "Не более 100 символов" }).optional(),
 };
 
 export const requestListQuerySchema = listQuery({
