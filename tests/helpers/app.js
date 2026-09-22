@@ -22,6 +22,13 @@ export const requestPayload = (equipmentId, overrides = {}) => ({
   ...overrides,
 });
 
+export const technicianPayload = (overrides = {}) => ({
+  fullName: "Бекиров Руслан Энверович",
+  specialization: "механик",
+  employeeNumber: `T-${Math.random().toString(36).slice(2, 7).toUpperCase()}`,
+  ...overrides,
+});
+
 export const fakeForecastDay = (overrides = {}) => ({
   date: "2026-09-21",
   tempMin: 10,
