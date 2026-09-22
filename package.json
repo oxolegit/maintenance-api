@@ -15,11 +15,14 @@
     "format": "prettier --write .",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
-    "seed": "node scripts/seed.js",
     "db:migrate": "node scripts/migrate.js up",
     "db:migrate:undo": "node scripts/migrate.js down",
     "db:migrate:undo:all": "node scripts/migrate.js down --to 0",
-    "db:migrate:status": "node scripts/migrate.js pending"
+    "db:migrate:status": "node scripts/migrate.js pending",
+    "db:seed": "node scripts/seed.js up",
+    "db:seed:undo": "node scripts/seed.js down",
+    "db:seed:undo:all": "node scripts/seed.js down --to 0",
+    "db:import": "node scripts/import-json.js"
   },
   "license": "ISC",
   "dependencies": {

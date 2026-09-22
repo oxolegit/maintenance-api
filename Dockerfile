@@ -9,6 +9,8 @@ RUN npm ci --omit=dev
 COPY src ./src
 COPY public ./public
 COPY scripts ./scripts
+COPY migrations ./migrations
+COPY seeders ./seeders
 
 USER node
 

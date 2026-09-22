@@ -1,4 +1,6 @@
 node_modules/
 .env
+# JSON-файлы хранилища Кейса 2 для scripts/import-json.js
+data/
 *.log
 coverage/
