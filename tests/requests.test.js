@@ -1,13 +1,22 @@
 import request from "supertest";
-import { buildApp, equipmentPayload, requestPayload, withKey } from "./helpers/app.js";
+import {
+  buildApp,
+  equipmentPayload,
+  requestPayload,
+  technicianPayload,
+  withKey,
+} from "./helpers/app.js";
 
 let app;
 let equipment;
+let technician;
 
 beforeEach(async () => {
   ({ app } = await buildApp());
   const res = await withKey(request(app).post("/api/equipment")).send(equipmentPayload());
   equipment = res.body.data;
+  technician = (await withKey(request(app).post("/api/technicians")).send(technicianPayload())).body
+    .data;
 });
 
 async function createRequest(overrides) {
@@ -18,7 +27,13 @@ async function createRequest(overrides) {
   return res.body.data;
 }
 
+// перевод в работу требует бригады, поэтому перед in_progress назначается исполнитель
 async function setStatus(id, status) {
+  if (status === "in_progress") {
+    await withKey(request(app).post(`/api/requests/${id}/assignees`)).send({
+      assignees: [{ technicianId: technician.id, role: "lead", hours: 4 }],
+    });
+  }
   return withKey(request(app).patch(`/api/requests/${id}/status`)).send({ status });
 }
 
