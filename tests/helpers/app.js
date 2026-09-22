@@ -32,12 +32,13 @@ export const fakeForecastDay = (overrides = {}) => ({
   ...overrides,
 });
 
-export async function buildApp({ env = {}, weatherClient } = {}) {
+export async function buildApp({ env = {}, weatherClient, checkDatabase } = {}) {
   const config = loadConfig({
     NODE_ENV: "test",
     STORAGE_DRIVER: "memory",
     LOG_LEVEL: "silent",
     API_KEY,
+    DB_PASSWORD: "test",
     ...env,
   });
   const repositories = await createRepositories({ storage: createMemoryStorage() });
@@ -46,6 +47,7 @@ export async function buildApp({ env = {}, weatherClient } = {}) {
     repositories,
     logger: createLogger(config),
     weatherClient: weatherClient ?? { getDailyForecast: async () => [fakeForecastDay()] },
+    checkDatabase,
   });
   return { app, repositories, config };
 }

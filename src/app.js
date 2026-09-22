@@ -21,6 +21,7 @@ export function createApp({
   repositories,
   logger = createLogger(config),
   weatherClient = createOpenMeteoClient(config.weather),
+  checkDatabase,
 }) {
   const app = express();
   app.disable("x-powered-by");
@@ -45,7 +46,7 @@ export function createApp({
   app.use("/api", createApiKeyAuth({ apiKey: config.apiKey, logger }));
   app.use(express.json({ limit: config.bodyLimit }));
 
-  app.use("/api", createApiRouter({ services }));
+  app.use("/api", createApiRouter({ services, checkDatabase }));
   app.use(express.static(PUBLIC_DIR));
 
   app.use(notFound);
